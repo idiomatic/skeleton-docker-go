@@ -1,24 +1,30 @@
-APP=skeleton-docker-go
-PORT=8338
+APP    = skeleton-docker-go
+PORT   = 8338
+DOCKER = /usr/local/bin/docker
 
-all: build run
+all: test build run
 
-$(APP):
-	docker run --rm -v "$$PWD":/go/src/$@ -w /go/src/$@ golang:latest go build -v -o $@
+$(APP): $(DOCKER)
+	$(DOCKER) run --rm -v "$$PWD":/go/src/$@ -w /go/src/$@ golang:latest go build -v -o $@
 
-build: $(APP)
-	docker build -t $(APP) .
+build: $(DOCKER) $(APP)
+	$(DOCKER) build -t $(APP) .
 
-run: build
-	docker run --rm --name $(APP) --publish=$(PORT):80 $(APP)
+run: build $(DOCKER)
+	$(DOCKER) run --rm --name $(APP) --publish=$(PORT):80 $(APP)
 
-test:
-	docker run --rm -v "$$PWD":/go/src/$(APP) -w /go/src/$(APP) golang:latest go test
+test: $(DOCKER)
+	$(DOCKER) run --rm -v "$$PWD":/go/src/$(APP) -w /go/src/$(APP) golang:latest go test
 
-shell:
-	docker run -ti --rm $(APP) sh
+shell: $(DOCKER)
+	$(DOCKER) run -ti --rm $(APP) sh
 
-clean:
+clean: $(DOCKER)
 	-rm $(APP)
-	-docker kill $(APP)
-	-docker rmi $(APP)
+	-$(DOCKER) kill $(APP)
+	-$(DOCKER) rmi $(APP)
+
+$(DOCKER):
+	[ `uname -s` = Darwin ] && brew install docker
+
+.PHONY: all build run test shell clean
